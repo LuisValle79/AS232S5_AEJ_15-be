@@ -41,4 +41,3 @@ El proyecto utiliza las siguientes configuraciones:
 
 ```bash
 curl http://localhost:8080/api/movies/search?title=La%20La%20Land
-```

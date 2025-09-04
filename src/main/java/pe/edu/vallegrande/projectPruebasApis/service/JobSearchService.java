@@ -12,11 +12,9 @@ import pe.edu.vallegrande.projectPruebasApis.exception.ApiException;
 import pe.edu.vallegrande.projectPruebasApis.model.jsearch.JobSearchResponse;
 import pe.edu.vallegrande.projectPruebasApis.repository.JobRepository;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -77,11 +75,11 @@ public class JobSearchService {
                         ));
                     }
                     
-                    // Verificar que los campos necesarios estén presentes en al menos un trabajo
+                    // Verificar que los campos necesarios estén presentes
                     boolean hasValidJobs = response.getData().stream()
                         .anyMatch(jobData -> jobData.getJob_id() != null && 
-                                 jobData.getEmployer_name() != null && 
-                                 jobData.getJob_title() != null);
+                                            jobData.getEmployer_name() != null && 
+                                            jobData.getJob_title() != null);
                     
                     if (!hasValidJobs) {
                         return Flux.error(new ApiException(
@@ -92,8 +90,8 @@ public class JobSearchService {
                     }
                     
                     String currentDate = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
-                    // Crear entidades de trabajo a partir de los datos de la API
-                    var jobEntities = response.getData().stream()
+                    // Mapear a JobEntity y guardar en la base de datos
+                    return Flux.fromIterable(response.getData())
                             .map(jobData -> JobEntity.builder()
                                     .jobId(jobData.getJob_id())
                                     .employerName(jobData.getEmployer_name())
@@ -106,20 +104,11 @@ public class JobSearchService {
                                     .jobEmploymentType(jobData.getJob_employment_type())
                                     .searchDate(currentDate)
                                     .build())
-                            .collect(Collectors.toList());
-                    
-                    // Guardar las entidades en la base de datos y devolver las mismas entidades
-                    return Flux.fromIterable(jobEntities)
-                            .flatMap(jobEntity -> jobRepository.save(jobEntity)
-                                    // Devolver la entidad guardada para mantener la respuesta
-                                    .thenReturn(jobEntity));
+                            .flatMap(jobRepository::save); // Devolver la entidad guardada
                 })
                 .onErrorResume(error -> {
-                    if (error instanceof WebClientResponseException) {
-                        WebClientResponseException wcError = (WebClientResponseException) error;
-                        // No tratar el código 200 OK como un error
+                    if (error instanceof WebClientResponseException wcError) {
                         if (wcError.getStatusCode().is2xxSuccessful()) {
-                            System.err.println("Respuesta 2xx recibida pero con error: " + wcError.getMessage());
                             return Flux.error(new ApiException(
                                 "La API devolvió una respuesta exitosa pero con formato incorrecto. Por favor, inténtelo de nuevo más tarde.",
                                 "JobSearch",
@@ -144,18 +133,14 @@ public class JobSearchService {
                                 "API_ERROR_" + wcError.getStatusCode()
                             ));
                         }
-                    } else if (error instanceof ApiException) {
-                        // Pasar la ApiException tal como está
-                        return Flux.error(error);
                     }
-                    
-                    // Manejar otros errores
-                    System.err.println("Error al buscar trabajos: " + error.getMessage());
-                    return Flux.error(new ApiException(
-                        "No se pudo procesar la búsqueda de trabajos. Por favor, inténtelo de nuevo más tarde.",
-                        "JobSearch",
-                        "PROCESSING_ERROR"
-                    ));
+                    return Flux.error(error instanceof ApiException
+                            ? error
+                            : new ApiException(
+                                "No se pudo procesar la búsqueda de trabajos. Por favor, inténtelo de nuevo más tarde.",
+                                "JobSearch",
+                                "PROCESSING_ERROR"
+                            ));
                 });
     }
 

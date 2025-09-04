@@ -1,0 +1,31 @@
+spring:
+  application:
+    name: projectPruebasApis
+  r2dbc:
+    url: r2dbc:postgresql://ep-withered-cell-afl7k9xj-pooler.c-2.us-west-2.aws.neon.tech:5432/neondb?options=endpoint=ep-withered-cell-afl7k9xj
+    username: neondb_owner
+    password: npg_yYaKwc5E6gsr
+    properties:
+      sslMode: require
+  server:
+    port: 8080
+rapidapi:
+  key: ab05570ba7msh5721c89ebac0f08p1cdd10jsn93d7f9f72c33
+  movie:
+    host: ai-movie-recommender.p.rapidapi.com
+  jsearch:
+    host: jsearch.p.rapidapi.com
+  youtube:
+    host: youtube-media-downloader.p.rapidapi.com
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+  packages-to-scan: pe.edu.vallegrande.projectPruebasApis.controller
+  paths-to-match: /api/movies/**
+logging:
+  level:
+    org.springdoc: DEBUG
+    org.springframework.web: DEBUG

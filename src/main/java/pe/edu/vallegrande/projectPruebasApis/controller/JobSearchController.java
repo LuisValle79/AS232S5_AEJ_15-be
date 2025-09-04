@@ -10,6 +10,8 @@ import pe.edu.vallegrande.projectPruebasApis.service.JobSearchService;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/jobs")
 @RequiredArgsConstructor
@@ -18,7 +20,7 @@ public class JobSearchController {
     private final JobSearchService jobSearchService;
 
     @GetMapping("/search")
-    public Mono<ResponseEntity<ApiResponse<Flux<JobEntity>>>> searchJobs(
+    public Mono<ResponseEntity<ApiResponse<List<JobEntity>>>> searchJobs(
             @RequestParam String query,
             @RequestParam(defaultValue = "us") String country,
             @RequestParam(defaultValue = "1") Integer page,
@@ -27,32 +29,29 @@ public class JobSearchController {
         // Validar los parámetros de entrada
         if (query == null || query.trim().isEmpty()) {
             return Mono.just(ResponseEntity.badRequest().body(
-                ApiResponse.<Flux<JobEntity>>error("El parámetro de búsqueda no puede estar vacío")
+                ApiResponse.<List<JobEntity>>error("El parámetro de búsqueda no puede estar vacío")
             ));
         }
         
         if (page < 1 || numPages < 1) {
             return Mono.just(ResponseEntity.badRequest().body(
-                ApiResponse.<Flux<JobEntity>>error("Los parámetros de paginación deben ser mayores a cero")
+                ApiResponse.<List<JobEntity>>error("Los parámetros de paginación deben ser mayores a cero")
             ));
         }
         
-        // Obtener los trabajos y devolverlos directamente en la respuesta
-        Flux<JobEntity> jobsFlux = jobSearchService.searchJobs(query, country, page, numPages);
-        return Mono.just(ResponseEntity.ok(
-            ApiResponse.success(jobsFlux, "Búsqueda de trabajos realizada correctamente")
-        ))
+        // Obtener los trabajos, recolectarlos en una lista y devolverlos
+        return jobSearchService.searchJobs(query, country, page, numPages)
+            .collectList()
+            .map(jobs -> {
+                ApiResponse<List<JobEntity>> response = ApiResponse.success(jobs, "Búsqueda de trabajos realizada correctamente");
+                response.setHasData(!jobs.isEmpty());
+                return ResponseEntity.ok(response);
+            })
             .onErrorResume(error -> {
-                // Registrar el error para depuración
                 System.err.println("Error al buscar trabajos para: " + query + ". Error: " + error.getMessage());
-                
-                // Proporcionar un mensaje más detallado según el tipo de error
-                if (error instanceof ApiException) {
-                    ApiException apiError = (ApiException) error;
+                if (error instanceof ApiException apiError) {
                     String errorCode = apiError.getErrorCode();
                     String message = apiError.getMessage();
-                    
-                    // Personalizar mensajes según el código de error
                     switch (errorCode) {
                         case "DATA_FORMAT_ERROR":
                             message = "El formato de la respuesta de la API no es válido. Por favor, intente con otra búsqueda.";
@@ -76,34 +75,27 @@ public class JobSearchController {
                             message = "Ocurrió un error al procesar su solicitud. Por favor, intente más tarde.";
                             break;
                     }
-                    
-                    return Mono.just(ResponseEntity.badRequest().body(ApiResponse.<Flux<JobEntity>>error(message)));
+                    return Mono.just(ResponseEntity.badRequest().body(ApiResponse.<List<JobEntity>>error(message)));
                 }
-                
-                // Para otros errores, devolver un mensaje genérico
-                return Mono.just(ResponseEntity.badRequest().body(ApiResponse.<Flux<JobEntity>>error(
+                return Mono.just(ResponseEntity.badRequest().body(ApiResponse.<List<JobEntity>>error(
                     "Ocurrió un error al procesar la búsqueda. Por favor, intente más tarde.")));
             });
     }
 
     @GetMapping
-    public Mono<ResponseEntity<ApiResponse<Flux<JobEntity>>>> getAllJobs() {
+    public Mono<ResponseEntity<ApiResponse<List<JobEntity>>>> getAllJobs() {
         return jobSearchService.getAllJobs()
             .collectList()
-            .map(jobList -> ResponseEntity.ok(
-                ApiResponse.success(Flux.fromIterable(jobList), "Lista de trabajos obtenida correctamente")
-            ))
+            .map(jobs -> {
+                ApiResponse<List<JobEntity>> response = ApiResponse.success(jobs, "Lista de trabajos obtenida correctamente");
+                response.setHasData(!jobs.isEmpty());
+                return ResponseEntity.ok(response);
+            })
             .onErrorResume(error -> {
-                // Registrar el error para depuración
                 System.err.println("Error al obtener todos los trabajos. Error: " + error.getMessage());
-                
-                // Proporcionar un mensaje más detallado según el tipo de error
-                if (error instanceof ApiException) {
-                    ApiException apiError = (ApiException) error;
+                if (error instanceof ApiException apiError) {
                     String errorCode = apiError.getErrorCode();
                     String message = apiError.getMessage();
-                    
-                    // Personalizar mensajes según el código de error
                     switch (errorCode) {
                         case "DATA_FORMAT_ERROR":
                             message = "El formato de la respuesta de la API no es válido. Por favor, intente más tarde.";
@@ -127,12 +119,9 @@ public class JobSearchController {
                             message = "Ocurrió un error al procesar su solicitud. Por favor, intente más tarde.";
                             break;
                     }
-                    
-                    return Mono.just(ResponseEntity.badRequest().body(ApiResponse.<Flux<JobEntity>>error(message)));
+                    return Mono.just(ResponseEntity.badRequest().body(ApiResponse.<List<JobEntity>>error(message)));
                 }
-                
-                // Para otros errores, devolver un mensaje genérico
-                return Mono.just(ResponseEntity.badRequest().body(ApiResponse.<Flux<JobEntity>>error(
+                return Mono.just(ResponseEntity.badRequest().body(ApiResponse.<List<JobEntity>>error(
                     "Ocurrió un error al obtener la lista de trabajos. Por favor, intente más tarde.")));
             });
     }

@@ -7,7 +7,6 @@ import pe.edu.vallegrande.projectPruebasApis.entity.MovieEntity;
 import pe.edu.vallegrande.projectPruebasApis.exception.ApiException;
 import pe.edu.vallegrande.projectPruebasApis.model.ApiResponse;
 import pe.edu.vallegrande.projectPruebasApis.service.MovieService;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
@@ -23,14 +22,12 @@ public class MovieController {
     public Mono<ResponseEntity<ApiResponse<List<MovieEntity>>>> searchMovies(
             @RequestParam String title) {
         
-        // Validar el título antes de procesar
         if (title == null || title.trim().isEmpty()) {
             return Mono.just(ResponseEntity.badRequest().body(
                 ApiResponse.<List<MovieEntity>>error("El título de la película no puede estar vacío")
             ));
         }
         
-        // Obtener las películas y devolverlas en la respuesta
         return movieService.searchMovies(title)
             .collectList()
             .map(movies -> {
@@ -39,35 +36,47 @@ public class MovieController {
                 return ResponseEntity.ok(response);
             })
             .onErrorResume(error -> {
-                // Registrar el error para depuración
                 System.err.println("Error al buscar películas para: " + title + ". Error: " + error.getMessage());
-                
-                // Proporcionar un mensaje más detallado según el tipo de error
-                if (error instanceof ApiException) {
-                    ApiException apiEx = (ApiException) error;
+                if (error instanceof ApiException apiEx) {
+                    String errorCode = apiEx.getErrorCode();
+                    String message = apiEx.getMessage();
+                    switch (errorCode) {
+                        case "NO_MOVIES_FOUND":
+                            message = "No se encontraron películas para la búsqueda: " + title;
+                            break;
+                        case "BAD_REQUEST":
+                            message = "Solicitud inválida: " + apiEx.getMessage();
+                            break;
+                        case "UNAUTHORIZED":
+                            message = "Error de autenticación con la API externa. Por favor, contacte al administrador.";
+                            break;
+                        case "RATE_LIMIT_EXCEEDED":
+                            message = "Se ha excedido el límite de solicitudes al servicio. Por favor, espere unos minutos e intente nuevamente.";
+                            break;
+                        case "PROCESSING_ERROR":
+                            message = "Ocurrió un error al procesar la búsqueda de películas. Por favor, intente más tarde.";
+                            break;
+                    }
                     return Mono.just(ResponseEntity.badRequest().body(
-                        ApiResponse.<List<MovieEntity>>error(apiEx.getMessage())
-                    ));
-                } else {
-                    return Mono.just(ResponseEntity.badRequest().body(
-                        ApiResponse.<List<MovieEntity>>error("Error al buscar películas: " + error.getMessage())
+                        ApiResponse.<List<MovieEntity>>error(message)
                     ));
                 }
+                return Mono.just(ResponseEntity.badRequest().body(
+                    ApiResponse.<List<MovieEntity>>error("Error al buscar películas: " + error.getMessage())
+                ));
             });
     }
-    
+
     @GetMapping("/getID")
     public Mono<ResponseEntity<ApiResponse<MovieEntity>>> getMovieById(
             @RequestParam String title) {
         
-        // Validar el título antes de procesar
         if (title == null || title.trim().isEmpty()) {
             return Mono.just(ResponseEntity.badRequest().body(
                 ApiResponse.<MovieEntity>error("El título de la película no puede estar vacío")
             ));
         }
         
-        // Obtener la película por ID y devolverla en la respuesta
         return movieService.getMovieById(title)
             .map(movie -> {
                 ApiResponse<MovieEntity> response = ApiResponse.success(movie, "Película encontrada correctamente");
@@ -75,23 +84,37 @@ public class MovieController {
                 return ResponseEntity.ok(response);
             })
             .onErrorResume(error -> {
-                // Registrar el error para depuración
                 System.err.println("Error al obtener la película: " + title + ". Error: " + error.getMessage());
-                
-                // Proporcionar un mensaje más detallado según el tipo de error
-                if (error instanceof ApiException) {
-                    ApiException apiEx = (ApiException) error;
+                if (error instanceof ApiException apiEx) {
+                    String errorCode = apiEx.getErrorCode();
+                    String message = apiEx.getMessage();
+                    switch (errorCode) {
+                        case "MOVIE_NOT_FOUND":
+                            message = "No se encontró la película: " + title;
+                            break;
+                        case "BAD_REQUEST":
+                            message = "Solicitud inválida: " + apiEx.getMessage();
+                            break;
+                        case "UNAUTHORIZED":
+                            message = "Error de autenticación con la API externa. Por favor, contacte al administrador.";
+                            break;
+                        case "RATE_LIMIT_EXCEEDED":
+                            message = "Se ha excedido el límite de solicitudes al servicio. Por favor, espere unos minutos e intente nuevamente.";
+                            break;
+                        case "PROCESSING_ERROR":
+                            message = "Ocurrió un error al procesar la búsqueda de películas. Por favor, intente más tarde.";
+                            break;
+                    }
                     return Mono.just(ResponseEntity.badRequest().body(
-                        ApiResponse.<MovieEntity>error(apiEx.getMessage())
-                    ));
-                } else {
-                    return Mono.just(ResponseEntity.badRequest().body(
-                        ApiResponse.<MovieEntity>error("Error al obtener la película: " + error.getMessage())
+                        ApiResponse.<MovieEntity>error(message)
                     ));
                 }
+                return Mono.just(ResponseEntity.badRequest().body(
+                    ApiResponse.<MovieEntity>error("Error al obtener la película: " + error.getMessage())
+                ));
             });
     }
-    
+
     @GetMapping
     public Mono<ResponseEntity<ApiResponse<List<MovieEntity>>>> getAllMovies() {
         return movieService.getAllMovies()
@@ -102,6 +125,7 @@ public class MovieController {
                 return ResponseEntity.ok(response);
             })
             .onErrorResume(error -> {
+                System.err.println("Error al obtener todas las películas: " + error.getMessage());
                 return Mono.just(ResponseEntity.badRequest().body(
                     ApiResponse.<List<MovieEntity>>error("Error al obtener las películas: " + error.getMessage())
                 ));
