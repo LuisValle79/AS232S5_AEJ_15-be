@@ -1,0 +1,54 @@
+name: Docker Hub CI/CD
+
+on:
+  push:
+    branches:
+      - develop
+      - main   # agrega aquí las ramas que quieras usar
+  pull_request:
+    branches:
+      - develop
+      - main
+  schedule:
+    # Ejecutar todos los días a las 8:00 AM hora Perú (UTC-5 → 1:00 PM UTC)
+    - cron: '0 13 * * *'
+  workflow_dispatch: # Permite ejecución manual desde GitHub Actions UI
+
+jobs:
+  dockerhub:
+    name: Build and Push Spring Boot Docker Image
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout del código
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      # 2. Configurar JDK 17
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      # 3. Construir el proyecto con Maven (generar el .jar en target/)
+      - name: Build with Maven
+        run: mvn clean package -DskipTests
+
+      # 4. Login a Docker Hub
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # 5. Build y Push a Docker Hub con tags latest y commit SHA
+      - name: Build and Push Docker Image to Docker Hub
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/springboot-app:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/springboot-app:${{ github.sha }}
