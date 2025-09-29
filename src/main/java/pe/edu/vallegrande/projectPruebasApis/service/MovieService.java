@@ -342,4 +342,23 @@ public class MovieService {
     public Flux<MovieEntity> getAllMovies() {
         return movieRepository.findAllActive();
     }
+    
+    /**
+     * Obtener todas las películas eliminadas lógicamente
+     */
+    public Flux<MovieEntity> getAllDeletedMovies() {
+        return movieRepository.findAllInactive();
+    }
+    
+    /**
+     * Obtener película eliminada por ID
+     */
+    public Mono<MovieEntity> findDeletedById(Long id) {
+        return movieRepository.findByIdAndInactive(id)
+                .switchIfEmpty(Mono.error(new ApiException(
+                    "Película eliminada no encontrada con ID: " + id,
+                    "MovieFind",
+                    "DELETED_MOVIE_NOT_FOUND"
+                )));
+    }
 }

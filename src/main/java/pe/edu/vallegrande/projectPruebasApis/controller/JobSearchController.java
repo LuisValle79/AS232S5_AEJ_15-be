@@ -366,4 +366,45 @@ public class JobSearchController {
                     "Ocurrió un error al obtener la lista de trabajos. Por favor, intente más tarde.")));
             });
     }
+    
+    /**
+     * Obtener todos los trabajos eliminados lógicamente
+     */
+    @GetMapping("/deleted")
+    public Mono<ResponseEntity<ApiResponse<List<JobEntity>>>> getAllDeletedJobs() {
+        return jobSearchService.getAllDeletedJobs()
+            .collectList()
+            .map(jobs -> {
+                ApiResponse<List<JobEntity>> response = ApiResponse.success(jobs, "Trabajos eliminados obtenidos correctamente");
+                response.setHasData(!jobs.isEmpty());
+                return ResponseEntity.ok(response);
+            })
+            .onErrorResume(error -> {
+                System.err.println("Error al obtener trabajos eliminados: " + error.getMessage());
+                return Mono.just(ResponseEntity.badRequest().body(
+                    ApiResponse.<List<JobEntity>>error("Error al obtener los trabajos eliminados: " + error.getMessage())
+                ));
+            });
+    }
+    
+    /**
+     * Obtener trabajo eliminado por ID
+     */
+    @GetMapping("/deleted/{id}")
+    public Mono<ResponseEntity<ApiResponse<JobEntity>>> getDeletedJobById(@PathVariable Long id) {
+        return jobSearchService.findDeletedById(id)
+            .map(job -> {
+                ApiResponse<JobEntity> response = ApiResponse.success(job, "Trabajo eliminado encontrado");
+                response.setHasData(true);
+                return ResponseEntity.ok(response);
+            })
+            .onErrorResume(error -> {
+                if (error instanceof ApiException apiEx && "DELETED_JOB_NOT_FOUND".equals(apiEx.getErrorCode())) {
+                    return Mono.just(ResponseEntity.notFound().build());
+                }
+                return Mono.just(ResponseEntity.badRequest().body(
+                    ApiResponse.<JobEntity>error("Error al obtener el trabajo eliminado: " + error.getMessage())
+                ));
+            });
+    }
 }

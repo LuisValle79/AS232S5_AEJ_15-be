@@ -35,4 +35,12 @@ public interface MovieRepository extends ReactiveCrudRepository<MovieEntity, Lon
     // Verificar si existe una película activa con el mismo movie_id
     @Query("SELECT COUNT(*) FROM movies WHERE movie_id = :movieId AND is_active = true")
     Mono<Long> countByMovieIdAndActive(String movieId);
+    
+    // Buscar todas las películas eliminadas lógicamente (inactivas)
+    @Query("SELECT * FROM movies WHERE is_active = false ORDER BY updated_at DESC")
+    Flux<MovieEntity> findAllInactive();
+    
+    // Buscar película eliminada por ID
+    @Query("SELECT * FROM movies WHERE id = :id AND is_active = false")
+    Mono<MovieEntity> findByIdAndInactive(Long id);
 }

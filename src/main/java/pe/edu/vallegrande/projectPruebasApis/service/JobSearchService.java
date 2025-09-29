@@ -291,4 +291,23 @@ public class JobSearchService {
     public Flux<JobEntity> getAllJobs() {
         return jobRepository.findAllActive();
     }
+    
+    /**
+     * Obtener todos los trabajos eliminados lógicamente
+     */
+    public Flux<JobEntity> getAllDeletedJobs() {
+        return jobRepository.findAllInactive();
+    }
+    
+    /**
+     * Obtener trabajo eliminado por ID
+     */
+    public Mono<JobEntity> findDeletedById(Long id) {
+        return jobRepository.findByIdAndInactive(id)
+                .switchIfEmpty(Mono.error(new ApiException(
+                    "Trabajo eliminado no encontrado con ID: " + id,
+                    "JobFind",
+                    "DELETED_JOB_NOT_FOUND"
+                )));
+    }
 }

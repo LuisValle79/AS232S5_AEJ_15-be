@@ -49,4 +49,12 @@ public interface JobRepository extends ReactiveCrudRepository<JobEntity, Long> {
     // Verificar si existe un trabajo activo con el mismo job_id
     @Query("SELECT COUNT(*) FROM jobs WHERE job_id = :jobId AND is_active = true")
     Mono<Long> countByJobIdAndActive(String jobId);
+    
+    // Buscar todos los trabajos eliminados lógicamente (inactivos)
+    @Query("SELECT * FROM jobs WHERE is_active = false ORDER BY updated_at DESC")
+    Flux<JobEntity> findAllInactive();
+    
+    // Buscar trabajo eliminado por ID
+    @Query("SELECT * FROM jobs WHERE id = :id AND is_active = false")
+    Mono<JobEntity> findByIdAndInactive(Long id);
 }

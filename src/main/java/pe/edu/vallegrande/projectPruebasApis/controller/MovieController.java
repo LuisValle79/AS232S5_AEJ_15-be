@@ -291,4 +291,45 @@ public class MovieController {
                 ));
             });
     }
+    
+    /**
+     * Obtener todas las películas eliminadas lógicamente
+     */
+    @GetMapping("/deleted")
+    public Mono<ResponseEntity<ApiResponse<List<MovieEntity>>>> getAllDeletedMovies() {
+        return movieService.getAllDeletedMovies()
+            .collectList()
+            .map(movies -> {
+                ApiResponse<List<MovieEntity>> response = ApiResponse.success(movies, "Películas eliminadas obtenidas correctamente");
+                response.setHasData(!movies.isEmpty());
+                return ResponseEntity.ok(response);
+            })
+            .onErrorResume(error -> {
+                System.err.println("Error al obtener películas eliminadas: " + error.getMessage());
+                return Mono.just(ResponseEntity.badRequest().body(
+                    ApiResponse.<List<MovieEntity>>error("Error al obtener las películas eliminadas: " + error.getMessage())
+                ));
+            });
+    }
+    
+    /**
+     * Obtener película eliminada por ID
+     */
+    @GetMapping("/deleted/{id}")
+    public Mono<ResponseEntity<ApiResponse<MovieEntity>>> getDeletedMovieById(@PathVariable Long id) {
+        return movieService.findDeletedById(id)
+            .map(movie -> {
+                ApiResponse<MovieEntity> response = ApiResponse.success(movie, "Película eliminada encontrada");
+                response.setHasData(true);
+                return ResponseEntity.ok(response);
+            })
+            .onErrorResume(error -> {
+                if (error instanceof ApiException apiEx && "DELETED_MOVIE_NOT_FOUND".equals(apiEx.getErrorCode())) {
+                    return Mono.just(ResponseEntity.notFound().build());
+                }
+                return Mono.just(ResponseEntity.badRequest().body(
+                    ApiResponse.<MovieEntity>error("Error al obtener la película eliminada: " + error.getMessage())
+                ));
+            });
+    }
 }
