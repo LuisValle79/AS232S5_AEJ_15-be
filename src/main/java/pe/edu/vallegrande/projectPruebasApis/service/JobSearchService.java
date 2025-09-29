@@ -9,9 +9,12 @@ import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 import pe.edu.vallegrande.projectPruebasApis.entity.JobEntity;
 import pe.edu.vallegrande.projectPruebasApis.exception.ApiException;
+import pe.edu.vallegrande.projectPruebasApis.model.jsearch.CreateJobRequest;
+import pe.edu.vallegrande.projectPruebasApis.model.jsearch.UpdateJobRequest;
 import pe.edu.vallegrande.projectPruebasApis.model.jsearch.JobSearchResponse;
 import pe.edu.vallegrande.projectPruebasApis.repository.JobRepository;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -144,7 +147,148 @@ public class JobSearchService {
                 });
     }
 
+    // ============ Métodos CRUD ============
+    
+    /**
+     * Crear un nuevo trabajo
+     */
+    public Mono<JobEntity> createJob(CreateJobRequest request) {
+        // Verificar si ya existe un trabajo activo con el mismo jobId
+        return jobRepository.countByJobIdAndActive(request.getJobId())
+                .flatMap(count -> {
+                    if (count > 0) {
+                        return Mono.error(new ApiException(
+                            "Ya existe un trabajo activo con el ID: " + request.getJobId(),
+                            "JobCreate",
+                            "DUPLICATE_JOB_ID"
+                        ));
+                    }
+                    
+                    String currentDate = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+                    JobEntity job = JobEntity.builder()
+                            .jobId(request.getJobId())
+                            .employerName(request.getEmployerName())
+                            .jobTitle(request.getJobTitle())
+                            .jobDescription(request.getJobDescription())
+                            .jobCountry(request.getJobCountry())
+                            .jobCity(request.getJobCity())
+                            .jobPostedAt(request.getJobPostedAt())
+                            .jobApplyLink(request.getJobApplyLink())
+                            .jobEmploymentType(request.getJobEmploymentType())
+                            .searchDate(currentDate)
+                            .createdAt(LocalDateTime.now())
+                            .updatedAt(LocalDateTime.now())
+                            .isActive(true)
+                            .build();
+                    
+                    return jobRepository.save(job);
+                });
+    }
+    
+    /**
+     * Obtener trabajo por ID (solo activos)
+     */
+    public Mono<JobEntity> findById(Long id) {
+        return jobRepository.findByIdAndActive(id)
+                .switchIfEmpty(Mono.error(new ApiException(
+                    "Trabajo no encontrado con ID: " + id,
+                    "JobFind",
+                    "JOB_NOT_FOUND"
+                )));
+    }
+    
+    /**
+     * Actualizar trabajo
+     */
+    public Mono<JobEntity> updateJob(Long id, UpdateJobRequest request) {
+        return jobRepository.findByIdAndActive(id)
+                .switchIfEmpty(Mono.error(new ApiException(
+                    "Trabajo no encontrado con ID: " + id,
+                    "JobUpdate",
+                    "JOB_NOT_FOUND"
+                )))
+                .map(existingJob -> {
+                    existingJob.setEmployerName(request.getEmployerName());
+                    existingJob.setJobTitle(request.getJobTitle());
+                    existingJob.setJobDescription(request.getJobDescription());
+                    existingJob.setJobCountry(request.getJobCountry());
+                    existingJob.setJobCity(request.getJobCity());
+                    existingJob.setJobPostedAt(request.getJobPostedAt());
+                    existingJob.setJobApplyLink(request.getJobApplyLink());
+                    existingJob.setJobEmploymentType(request.getJobEmploymentType());
+                    existingJob.setUpdatedAt(LocalDateTime.now());
+                    return existingJob;
+                })
+                .flatMap(jobRepository::save);
+    }
+    
+    /**
+     * Eliminado lógico de trabajo
+     */
+    public Mono<Void> deleteJob(Long id) {
+        return jobRepository.findByIdAndActive(id)
+                .switchIfEmpty(Mono.error(new ApiException(
+                    "Trabajo no encontrado con ID: " + id,
+                    "JobDelete",
+                    "JOB_NOT_FOUND"
+                )))
+                .flatMap(job -> jobRepository.logicalDelete(id));
+    }
+    
+    /**
+     * Restaurar trabajo eliminado lógicamente
+     */
+    public Mono<Void> restoreJob(Long id) {
+        return jobRepository.findById(id)
+                .switchIfEmpty(Mono.error(new ApiException(
+                    "Trabajo no encontrado con ID: " + id,
+                    "JobRestore",
+                    "JOB_NOT_FOUND"
+                )))
+                .flatMap(job -> {
+                    if (job.getIsActive()) {
+                        return Mono.error(new ApiException(
+                            "El trabajo ya está activo",
+                            "JobRestore",
+                            "JOB_ALREADY_ACTIVE"
+                        ));
+                    }
+                    return jobRepository.restore(id);
+                });
+    }
+    
+    /**
+     * Buscar trabajos por título (solo activos)
+     */
+    public Flux<JobEntity> findByJobTitleContaining(String jobTitle) {
+        return jobRepository.findByJobTitleContainingIgnoreCaseAndActive(jobTitle);
+    }
+    
+    /**
+     * Buscar trabajos por empresa (solo activos)
+     */
+    public Flux<JobEntity> findByEmployerNameContaining(String employerName) {
+        return jobRepository.findByEmployerNameContainingIgnoreCaseAndActive(employerName);
+    }
+    
+    /**
+     * Buscar trabajos por país (solo activos)
+     */
+    public Flux<JobEntity> findByCountry(String country) {
+        return jobRepository.findByJobCountryIgnoreCaseAndActive(country);
+    }
+    
+    /**
+     * Buscar trabajos por ciudad (solo activos)
+     */
+    public Flux<JobEntity> findByCity(String city) {
+        return jobRepository.findByJobCityIgnoreCaseAndActive(city);
+    }
+    
+    /**
+     * Obtener todos los trabajos activos
+     */
     public Flux<JobEntity> getAllJobs() {
-        return jobRepository.findAll();
+        return jobRepository.findAllActive();
     }
 }

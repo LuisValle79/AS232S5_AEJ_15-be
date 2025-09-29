@@ -1,0 +1,524 @@
+===============================================================================
+                    ESPECIFICACIONES TÉCNICAS DEL PROYECTO
+                         projectPruebasApis - Backend API
+                    Para Integración con Frontend (React/Vue/Angular)
+===============================================================================
+
+🎯 INFORMACIÓN GENERAL DEL PROYECTO
+=====================================
+
+Nombre del Proyecto: projectPruebasApis
+Tipo: API REST Reactiva con Spring Boot
+Base URL: http://localhost:8080
+Arquitectura: Microservicio reactivo con Spring WebFlux
+Base de Datos: PostgreSQL (Neon Cloud)
+Patrón de Eliminación: Eliminado Lógico (is_active = true/false)
+
+📋 STACK TECNOLÓGICO BACKEND
+===============================
+
+Framework Principal: Spring Boot 3.4.4
+Lenguaje: Java 17
+Programación Reactiva: Spring WebFlux + Project Reactor
+Base de Datos: PostgreSQL (R2DBC para acceso reactivo)
+APIs Externas: RapidAPI (AI Movie Recommender, JSearch)
+Documentación: Swagger UI en /swagger-ui.html
+Build Tool: Maven
+Contenedores: Docker (opcional)
+
+🌐 ARQUITECTURA DE LA API
+===========================
+
+Patrón Arquitectónico: Layered Architecture
+Controladores → Servicios → Repositorios → Base de Datos/APIs Externas
+
+Programación Reactiva:
+- Mono<T>: Para respuestas de un solo elemento
+- Flux<T>: Para respuestas de múltiples elementos
+- ApiResponse<T>: Wrapper estándar para todas las respuestas
+
+🔗 ENDPOINTS PRINCIPALES DE LA API
+====================================
+
+📌 BASE URL: http://localhost:8080
+
+===============================================================================
+🎬 MÓDULO MOVIES - /api/movies
+===============================================================================
+
+1️⃣ CREAR PELÍCULA
+   POST /api/movies
+   Content-Type: application/json
+   
+   Request Body:
+   {
+     "movieId": "string (único, obligatorio)",
+     "title": "string (obligatorio)",
+     "overview": "string (opcional)",
+     "posterPath": "string (opcional)",
+     "releaseDate": "string (opcional, formato: YYYY-MM-DD)",
+     "voteAverage": "number (0.0-10.0, opcional)",
+     "voteCount": "number (≥0, opcional)",
+     "popularity": "number (≥0, opcional)",
+     "genreIds": "string (opcional, formato: 1,2,3)"
+   }
+   
+   Response 201:
+   {
+     "success": true,
+     "message": "Película creada exitosamente",
+     "data": {MovieEntity},
+     "hasData": true,
+     "timestamp": "2024-01-01T12:00:00Z"
+   }
+
+2️⃣ OBTENER PELÍCULA POR ID
+   GET /api/movies/{id}
+   
+   Response 200:
+   {
+     "success": true,
+     "message": "Película encontrada",
+     "data": {MovieEntity},
+     "hasData": true,
+     "timestamp": "2024-01-01T12:00:00Z"
+   }
+   
+   Response 404: Not Found (si no existe o está eliminada)
+
+3️⃣ ACTUALIZAR PELÍCULA
+   PUT /api/movies/{id}
+   Content-Type: application/json
+   
+   Request Body:
+   {
+     "title": "string (obligatorio)",
+     "overview": "string (opcional)",
+     "posterPath": "string (opcional)",
+     "releaseDate": "string (opcional)",
+     "voteAverage": "number (0.0-10.0, opcional)",
+     "voteCount": "number (≥0, opcional)",
+     "popularity": "number (≥0, opcional)",
+     "genreIds": "string (opcional)"
+   }
+
+4️⃣ ELIMINAR PELÍCULA (LÓGICO)
+   DELETE /api/movies/{id}
+   
+   Response 200:
+   {
+     "success": true,
+     "message": "Película eliminada exitosamente",
+     "data": null,
+     "hasData": false,
+     "timestamp": "2024-01-01T12:00:00Z"
+   }
+
+5️⃣ RESTAURAR PELÍCULA
+   PATCH /api/movies/{id}/restore
+   
+   Response 200:
+   {
+     "success": true,
+     "message": "Película restaurada exitosamente",
+     "data": null,
+     "hasData": false,
+     "timestamp": "2024-01-01T12:00:00Z"
+   }
+
+6️⃣ LISTAR TODAS LAS PELÍCULAS ACTIVAS
+   GET /api/movies
+   
+   Response 200:
+   {
+     "success": true,
+     "message": "Películas obtenidas correctamente",
+     "data": [MovieEntity array],
+     "hasData": true,
+     "timestamp": "2024-01-01T12:00:00Z"
+   }
+
+7️⃣ BUSCAR PELÍCULAS POR TÍTULO (BASE DE DATOS)
+   GET /api/movies/search-by-title?title={searchTerm}
+   
+   Busca en la base de datos local, insensible a mayúsculas
+
+8️⃣ BUSCAR PELÍCULAS EN API EXTERNA
+   GET /api/movies/search?title={movieTitle}
+   
+   Busca en RapidAPI y guarda resultados en base de datos
+
+9️⃣ OBTENER PELÍCULA POR TÍTULO (API EXTERNA)
+   GET /api/movies/getID?title={movieTitle}
+   
+   Obtiene detalles específicos desde RapidAPI
+
+===============================================================================
+💼 MÓDULO JOBS - /api/jobs
+===============================================================================
+
+1️⃣ CREAR TRABAJO
+   POST /api/jobs
+   Content-Type: application/json
+   
+   Request Body:
+   {
+     "jobId": "string (único, obligatorio)",
+     "employerName": "string (obligatorio)",
+     "jobTitle": "string (obligatorio)",
+     "jobDescription": "string (opcional)",
+     "jobCountry": "string (opcional)",
+     "jobCity": "string (opcional)",
+     "jobPostedAt": "string (opcional)",
+     "jobApplyLink": "string (opcional)",
+     "jobEmploymentType": "string (opcional)"
+   }
+
+2️⃣ OBTENER TRABAJO POR ID
+   GET /api/jobs/{id}
+
+3️⃣ ACTUALIZAR TRABAJO
+   PUT /api/jobs/{id}
+   Content-Type: application/json
+   
+   Request Body:
+   {
+     "employerName": "string (obligatorio)",
+     "jobTitle": "string (obligatorio)",
+     "jobDescription": "string (opcional)",
+     "jobCountry": "string (opcional)",
+     "jobCity": "string (opcional)",
+     "jobPostedAt": "string (opcional)",
+     "jobApplyLink": "string (opcional)",
+     "jobEmploymentType": "string (opcional)"
+   }
+
+4️⃣ ELIMINAR TRABAJO (LÓGICO)
+   DELETE /api/jobs/{id}
+
+5️⃣ RESTAURAR TRABAJO
+   PATCH /api/jobs/{id}/restore
+
+6️⃣ LISTAR TODOS LOS TRABAJOS ACTIVOS
+   GET /api/jobs
+
+7️⃣ BUSCAR TRABAJOS POR TÍTULO
+   GET /api/jobs/search-by-title?title={searchTerm}
+
+8️⃣ BUSCAR TRABAJOS POR EMPRESA
+   GET /api/jobs/search-by-employer?employer={companyName}
+
+9️⃣ BUSCAR TRABAJOS POR PAÍS
+   GET /api/jobs/search-by-country?country={countryName}
+
+🔟 BUSCAR TRABAJOS POR CIUDAD
+   GET /api/jobs/search-by-city?city={cityName}
+
+1️⃣1️⃣ BUSCAR TRABAJOS EN API EXTERNA
+   GET /api/jobs/search?query={searchTerm}&country={country}&page={page}&numPages={numPages}
+   
+   Parámetros:
+   - query (obligatorio): término de búsqueda
+   - country (opcional, default: "us"): código de país
+   - page (opcional, default: 1): página actual
+   - numPages (opcional, default: 1): número de páginas
+
+===============================================================================
+📊 ESTRUCTURAS DE DATOS
+===============================================================================
+
+🎬 MovieEntity:
+{
+  "id": "number (Primary Key)",
+  "movieId": "string (Unique)",
+  "title": "string",
+  "overview": "string",
+  "posterPath": "string",
+  "releaseDate": "string",
+  "voteAverage": "number",
+  "voteCount": "number",
+  "popularity": "number",
+  "genreIds": "string",
+  "searchDate": "string",
+  "createdAt": "LocalDateTime",
+  "updatedAt": "LocalDateTime",
+  "isActive": "boolean"
+}
+
+💼 JobEntity:
+{
+  "id": "number (Primary Key)",
+  "jobId": "string (Unique)",
+  "employerName": "string",
+  "jobTitle": "string",
+  "jobDescription": "string",
+  "jobCountry": "string",
+  "jobCity": "string",
+  "jobPostedAt": "string",
+  "jobApplyLink": "string",
+  "jobEmploymentType": "string",
+  "searchDate": "string",
+  "createdAt": "LocalDateTime",
+  "updatedAt": "LocalDateTime",
+  "isActive": "boolean"
+}
+
+📋 ApiResponse<T> (Wrapper para todas las respuestas):
+{
+  "success": "boolean",
+  "message": "string",
+  "data": "T (generic type)",
+  "hasData": "boolean",
+  "timestamp": "string (ISO format)"
+}
+
+===============================================================================
+🚦 CÓDIGOS DE RESPUESTA HTTP
+===============================================================================
+
+200 OK - Operación exitosa
+201 Created - Recurso creado exitosamente
+400 Bad Request - Error en la solicitud o validación
+404 Not Found - Recurso no encontrado
+500 Internal Server Error - Error del servidor
+
+===============================================================================
+🔧 CONFIGURACIÓN PARA EL FRONTEND
+===============================================================================
+
+📌 Variables de Entorno Recomendadas para Frontend:
+
+REACT_APP_API_BASE_URL=http://localhost:8080
+REACT_APP_API_MOVIES_ENDPOINT=/api/movies
+REACT_APP_API_JOBS_ENDPOINT=/api/jobs
+
+📌 Headers Requeridos:
+
+Content-Type: application/json (para POST/PUT)
+Accept: application/json
+
+📌 Manejo de Errores:
+
+Todas las respuestas de error siguen el formato ApiResponse:
+{
+  "success": false,
+  "message": "Descripción del error",
+  "data": null,
+  "hasData": false,
+  "timestamp": "2024-01-01T12:00:00Z"
+}
+
+===============================================================================
+🔄 EJEMPLOS DE INTEGRACIÓN FRONTEND
+===============================================================================
+
+📌 JavaScript/Fetch API:
+
+// Crear película
+const createMovie = async (movieData) => {
+  const response = await fetch('http://localhost:8080/api/movies', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(movieData)
+  });
+  return await response.json();
+};
+
+// Obtener todas las películas
+const getMovies = async () => {
+  const response = await fetch('http://localhost:8080/api/movies');
+  return await response.json();
+};
+
+// Buscar películas
+const searchMovies = async (title) => {
+  const response = await fetch(`http://localhost:8080/api/movies/search-by-title?title=${encodeURIComponent(title)}`);
+  return await response.json();
+};
+
+// Eliminar película (lógico)
+const deleteMovie = async (id) => {
+  const response = await fetch(`http://localhost:8080/api/movies/${id}`, {
+    method: 'DELETE'
+  });
+  return await response.json();
+};
+
+📌 Axios (Recomendado para React):
+
+import axios from 'axios';
+
+const api = axios.create({
+  baseURL: 'http://localhost:8080',
+  headers: {
+    'Content-Type': 'application/json'
+  }
+});
+
+// Interceptor para manejar respuestas
+api.interceptors.response.use(
+  response => response.data,
+  error => {
+    console.error('API Error:', error);
+    return Promise.reject(error);
+  }
+);
+
+export const movieService = {
+  getAll: () => api.get('/api/movies'),
+  getById: (id) => api.get(`/api/movies/${id}`),
+  create: (data) => api.post('/api/movies', data),
+  update: (id, data) => api.put(`/api/movies/${id}`, data),
+  delete: (id) => api.delete(`/api/movies/${id}`),
+  restore: (id) => api.patch(`/api/movies/${id}/restore`),
+  searchByTitle: (title) => api.get(`/api/movies/search-by-title?title=${title}`),
+  searchExternal: (title) => api.get(`/api/movies/search?title=${title}`)
+};
+
+export const jobService = {
+  getAll: () => api.get('/api/jobs'),
+  getById: (id) => api.get(`/api/jobs/${id}`),
+  create: (data) => api.post('/api/jobs', data),
+  update: (id, data) => api.put(`/api/jobs/${id}`, data),
+  delete: (id) => api.delete(`/api/jobs/${id}`),
+  restore: (id) => api.patch(`/api/jobs/${id}/restore`),
+  searchByTitle: (title) => api.get(`/api/jobs/search-by-title?title=${title}`),
+  searchByEmployer: (employer) => api.get(`/api/jobs/search-by-employer?employer=${employer}`),
+  searchByCountry: (country) => api.get(`/api/jobs/search-by-country?country=${country}`),
+  searchByCity: (city) => api.get(`/api/jobs/search-by-city?city=${city}`),
+  searchExternal: (query, country = 'us', page = 1, numPages = 1) => 
+    api.get(`/api/jobs/search?query=${query}&country=${country}&page=${page}&numPages=${numPages}`)
+};
+
+===============================================================================
+🎨 RECOMENDACIONES PARA LA UI/UX
+===============================================================================
+
+📌 Componentes Sugeridos:
+
+1. MovieList - Lista de películas con paginación
+2. MovieCard - Tarjeta individual de película
+3. MovieForm - Formulario para crear/editar películas
+4. MovieDetail - Vista detallada de película
+5. SearchBar - Barra de búsqueda con filtros
+
+6. JobList - Lista de trabajos con filtros
+7. JobCard - Tarjeta individual de trabajo
+8. JobForm - Formulario para crear/editar trabajos
+9. JobDetail - Vista detallada de trabajo
+10. FilterPanel - Panel de filtros avanzados
+
+📌 Estados a Manejar:
+
+- loading: boolean (para mostrar spinners)
+- error: string | null (para mostrar errores)
+- data: array | object (datos de la API)
+- pagination: object (para paginación)
+- filters: object (para filtros de búsqueda)
+
+📌 Funcionalidades Clave:
+
+1. CRUD completo para películas y trabajos
+2. Búsqueda en tiempo real
+3. Filtros avanzados
+4. Paginación
+5. Confirmación antes de eliminar
+6. Opción de restaurar elementos eliminados
+7. Validación de formularios
+8. Manejo de errores amigable
+9. Loading states
+10. Responsive design
+
+===============================================================================
+🔒 CONSIDERACIONES DE SEGURIDAD
+===============================================================================
+
+📌 CORS:
+El backend debe configurar CORS para permitir requests desde el frontend.
+Actualmente permite todas las origins (development).
+
+📌 Validación:
+- Siempre validar datos en el frontend antes de enviar
+- El backend ya tiene validaciones con Bean Validation
+- Sanitizar inputs para prevenir XSS
+
+📌 Manejo de Errores:
+- No exponer información sensible en mensajes de error
+- Implementar retry logic para requests fallidos
+- Timeout para requests largos
+
+===============================================================================
+🚀 COMANDOS PARA EJECUTAR EL BACKEND
+===============================================================================
+
+📌 Desarrollo:
+mvn spring-boot:run
+
+📌 Build:
+mvn clean package
+
+📌 Docker (opcional):
+docker build -t projectpruebasapis .
+docker run -p 8080:8080 projectpruebasapis
+
+📌 Testing:
+mvn test
+
+📌 Documentación Swagger:
+http://localhost:8080/swagger-ui.html
+
+===============================================================================
+📚 RECURSOS ADICIONALES
+===============================================================================
+
+📌 Documentación Detallada: CRUD_DOCUMENTATION.md
+📌 Swagger UI: http://localhost:8080/swagger-ui.html (cuando esté corriendo)
+📌 Arquitectura: Reactive Spring Boot con WebFlux
+📌 Base de Datos: PostgreSQL en Neon Cloud
+📌 APIs Externas: RapidAPI (AI Movie Recommender, JSearch)
+
+===============================================================================
+✅ CHECKLIST PARA INTEGRACIÓN FRONTEND
+===============================================================================
+
+□ Configurar base URL de la API
+□ Implementar servicios HTTP (axios/fetch)
+□ Crear interfaces TypeScript (si usas TypeScript)
+□ Implementar manejo de errores global
+□ Configurar interceptors para requests/responses
+□ Implementar loading states
+□ Crear componentes de UI para CRUD
+□ Implementar validación de formularios
+□ Añadir confirmaciones para acciones destructivas
+□ Implementar búsqueda y filtros
+□ Configurar routing
+□ Implementar responsive design
+□ Añadir notificaciones toast/alerts
+□ Implementar paginación
+□ Testing de integración
+
+===============================================================================
+🎯 NOTAS IMPORTANTES
+===============================================================================
+
+1. Todas las operaciones son REACTIVAS (asíncronas)
+2. Eliminado LÓGICO: los registros nunca se borran físicamente
+3. Todas las respuestas usan el wrapper ApiResponse<T>
+4. IDs únicos por movieId y jobId para prevenir duplicados
+5. Campos de auditoría automáticos (createdAt, updatedAt)
+6. Búsquedas locales vs búsquedas en APIs externas disponibles
+7. Validaciones robustas en backend con Bean Validation
+8. Manejo de errores detallado y consistente
+
+===============================================================================
+                            FIN DE ESPECIFICACIONES
+===============================================================================
+
+Este archivo contiene toda la información necesaria para desarrollar un frontend
+completo que se integre perfectamente con el backend projectPruebasApis.
+
+Última actualización: $(date)
+Versión: 1.0
+Autor: Sistema de Desarrollo

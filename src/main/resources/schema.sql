@@ -7,7 +7,10 @@ CREATE TABLE IF NOT EXISTS youtube_mp3 (
     quality VARCHAR(20),
     thumbnail VARCHAR(255),
     duration VARCHAR(50),
-    search_date VARCHAR(50)
+    search_date VARCHAR(50),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    is_active BOOLEAN DEFAULT TRUE
 );
 
 -- Tabla para almacenar información de películas
@@ -22,7 +25,10 @@ CREATE TABLE IF NOT EXISTS movies (
     vote_count INTEGER,
     popularity DECIMAL(10,3),
     genre_ids VARCHAR(100),
-    search_date VARCHAR(50)
+    search_date VARCHAR(50),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    is_active BOOLEAN DEFAULT TRUE
 );
 
 -- Tabla para almacenar información de trabajos
@@ -37,5 +43,21 @@ CREATE TABLE IF NOT EXISTS jobs (
     job_posted_at VARCHAR(50),
     job_apply_link VARCHAR(255),
     job_employment_type VARCHAR(100),
-    search_date VARCHAR(50)
+    search_date VARCHAR(50),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    is_active BOOLEAN DEFAULT TRUE
 );
+
+-- Agregar campos de auditoría a las tablas existentes si no existen
+ALTER TABLE youtube_mp3 ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE youtube_mp3 ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE youtube_mp3 ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE;
+
+ALTER TABLE movies ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE movies ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE movies ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE;
+
+ALTER TABLE jobs ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE jobs ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE jobs ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE;

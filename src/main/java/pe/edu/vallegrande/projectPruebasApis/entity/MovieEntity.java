@@ -1,12 +1,16 @@
 package pe.edu.vallegrande.projectPruebasApis.entity;
 
 import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import java.time.LocalDateTime;
 
 @Table("movies")
 @Data
@@ -46,4 +50,16 @@ public class MovieEntity {
 
     @Column("search_date")
     private String searchDate;
+
+    @CreatedDate
+    @Column("created_at")
+    private LocalDateTime createdAt;
+
+    @LastModifiedDate
+    @Column("updated_at")
+    private LocalDateTime updatedAt;
+
+    @Column("is_active")
+    @Builder.Default
+    private Boolean isActive = true;
 }

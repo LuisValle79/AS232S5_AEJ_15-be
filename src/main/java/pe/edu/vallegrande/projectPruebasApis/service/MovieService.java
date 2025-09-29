@@ -9,6 +9,8 @@ import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 import pe.edu.vallegrande.projectPruebasApis.entity.MovieEntity;
 import pe.edu.vallegrande.projectPruebasApis.exception.ApiException;
+import pe.edu.vallegrande.projectPruebasApis.model.movie.CreateMovieRequest;
+import pe.edu.vallegrande.projectPruebasApis.model.movie.UpdateMovieRequest;
 import pe.edu.vallegrande.projectPruebasApis.model.movie.MovieSearchResponse;
 import pe.edu.vallegrande.projectPruebasApis.repository.MovieRepository;
 import reactor.core.publisher.Flux;
@@ -217,7 +219,127 @@ public class MovieService {
         }
     }
 
+    // ============ Métodos CRUD ============
+    
+    /**
+     * Crear una nueva película
+     */
+    public Mono<MovieEntity> createMovie(CreateMovieRequest request) {
+        // Verificar si ya existe una película activa con el mismo movieId
+        return movieRepository.countByMovieIdAndActive(request.getMovieId())
+                .flatMap(count -> {
+                    if (count > 0) {
+                        return Mono.error(new ApiException(
+                            "Ya existe una película activa con el ID: " + request.getMovieId(),
+                            "MovieCreate",
+                            "DUPLICATE_MOVIE_ID"
+                        ));
+                    }
+                    
+                    String currentDate = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+                    MovieEntity movie = MovieEntity.builder()
+                            .movieId(request.getMovieId())
+                            .title(request.getTitle())
+                            .overview(request.getOverview())
+                            .posterPath(request.getPosterPath())
+                            .releaseDate(request.getReleaseDate())
+                            .voteAverage(request.getVoteAverage())
+                            .voteCount(request.getVoteCount())
+                            .popularity(request.getPopularity())
+                            .genreIds(request.getGenreIds())
+                            .searchDate(currentDate)
+                            .createdAt(LocalDateTime.now())
+                            .updatedAt(LocalDateTime.now())
+                            .isActive(true)
+                            .build();
+                    
+                    return movieRepository.save(movie);
+                });
+    }
+    
+    /**
+     * Obtener película por ID (solo activas)
+     */
+    public Mono<MovieEntity> findById(Long id) {
+        return movieRepository.findByIdAndActive(id)
+                .switchIfEmpty(Mono.error(new ApiException(
+                    "Película no encontrada con ID: " + id,
+                    "MovieFind",
+                    "MOVIE_NOT_FOUND"
+                )));
+    }
+    
+    /**
+     * Actualizar película
+     */
+    public Mono<MovieEntity> updateMovie(Long id, UpdateMovieRequest request) {
+        return movieRepository.findByIdAndActive(id)
+                .switchIfEmpty(Mono.error(new ApiException(
+                    "Película no encontrada con ID: " + id,
+                    "MovieUpdate",
+                    "MOVIE_NOT_FOUND"
+                )))
+                .map(existingMovie -> {
+                    existingMovie.setTitle(request.getTitle());
+                    existingMovie.setOverview(request.getOverview());
+                    existingMovie.setPosterPath(request.getPosterPath());
+                    existingMovie.setReleaseDate(request.getReleaseDate());
+                    existingMovie.setVoteAverage(request.getVoteAverage());
+                    existingMovie.setVoteCount(request.getVoteCount());
+                    existingMovie.setPopularity(request.getPopularity());
+                    existingMovie.setGenreIds(request.getGenreIds());
+                    existingMovie.setUpdatedAt(LocalDateTime.now());
+                    return existingMovie;
+                })
+                .flatMap(movieRepository::save);
+    }
+    
+    /**
+     * Eliminado lógico de película
+     */
+    public Mono<Void> deleteMovie(Long id) {
+        return movieRepository.findByIdAndActive(id)
+                .switchIfEmpty(Mono.error(new ApiException(
+                    "Película no encontrada con ID: " + id,
+                    "MovieDelete",
+                    "MOVIE_NOT_FOUND"
+                )))
+                .flatMap(movie -> movieRepository.logicalDelete(id));
+    }
+    
+    /**
+     * Restaurar película eliminada lógicamente
+     */
+    public Mono<Void> restoreMovie(Long id) {
+        return movieRepository.findById(id)
+                .switchIfEmpty(Mono.error(new ApiException(
+                    "Película no encontrada con ID: " + id,
+                    "MovieRestore",
+                    "MOVIE_NOT_FOUND"
+                )))
+                .flatMap(movie -> {
+                    if (movie.getIsActive()) {
+                        return Mono.error(new ApiException(
+                            "La película ya está activa",
+                            "MovieRestore",
+                            "MOVIE_ALREADY_ACTIVE"
+                        ));
+                    }
+                    return movieRepository.restore(id);
+                });
+    }
+    
+    /**
+     * Buscar películas por título (solo activas)
+     */
+    public Flux<MovieEntity> findByTitleContaining(String title) {
+        return movieRepository.findByTitleContainingIgnoreCaseAndActive(title);
+    }
+    
+    /**
+     * Obtener todas las películas activas
+     */
     public Flux<MovieEntity> getAllMovies() {
-        return movieRepository.findAll();
+        return movieRepository.findAllActive();
     }
 }

@@ -1,23 +1,264 @@
 package pe.edu.vallegrande.projectPruebasApis.controller;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import pe.edu.vallegrande.projectPruebasApis.entity.JobEntity;
 import pe.edu.vallegrande.projectPruebasApis.exception.ApiException;
 import pe.edu.vallegrande.projectPruebasApis.model.ApiResponse;
+import pe.edu.vallegrande.projectPruebasApis.model.jsearch.CreateJobRequest;
+import pe.edu.vallegrande.projectPruebasApis.model.jsearch.UpdateJobRequest;
 import pe.edu.vallegrande.projectPruebasApis.service.JobSearchService;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import jakarta.validation.Valid;
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/jobs")
 @RequiredArgsConstructor
+@Validated
 public class JobSearchController {
 
     private final JobSearchService jobSearchService;
+
+    // ============ Endpoints CRUD ============
+    
+    /**
+     * Crear un nuevo trabajo
+     */
+    @PostMapping
+    public Mono<ResponseEntity<ApiResponse<JobEntity>>> createJob(
+            @Valid @RequestBody CreateJobRequest request) {
+        
+        return jobSearchService.createJob(request)
+            .map(job -> {
+                ApiResponse<JobEntity> response = ApiResponse.success(job, "Trabajo creado exitosamente");
+                response.setHasData(true);
+                return ResponseEntity.status(HttpStatus.CREATED).body(response);
+            })
+            .onErrorResume(error -> {
+                if (error instanceof ApiException apiEx) {
+                    String message = switch (apiEx.getErrorCode()) {
+                        case "DUPLICATE_JOB_ID" -> "Ya existe un trabajo con ese ID";
+                        default -> apiEx.getMessage();
+                    };
+                    return Mono.just(ResponseEntity.badRequest().body(
+                        ApiResponse.<JobEntity>error(message)
+                    ));
+                }
+                return Mono.just(ResponseEntity.badRequest().body(
+                    ApiResponse.<JobEntity>error("Error al crear el trabajo: " + error.getMessage())
+                ));
+            });
+    }
+    
+    /**
+     * Obtener trabajo por ID
+     */
+    @GetMapping("/{id}")
+    public Mono<ResponseEntity<ApiResponse<JobEntity>>> getJobById(@PathVariable Long id) {
+        return jobSearchService.findById(id)
+            .map(job -> {
+                ApiResponse<JobEntity> response = ApiResponse.success(job, "Trabajo encontrado");
+                response.setHasData(true);
+                return ResponseEntity.ok(response);
+            })
+            .onErrorResume(error -> {
+                if (error instanceof ApiException apiEx && "JOB_NOT_FOUND".equals(apiEx.getErrorCode())) {
+                    return Mono.just(ResponseEntity.notFound().build());
+                }
+                return Mono.just(ResponseEntity.badRequest().body(
+                    ApiResponse.<JobEntity>error("Error al obtener el trabajo: " + error.getMessage())
+                ));
+            });
+    }
+    
+    /**
+     * Actualizar trabajo
+     */
+    @PutMapping("/{id}")
+    public Mono<ResponseEntity<ApiResponse<JobEntity>>> updateJob(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateJobRequest request) {
+        
+        return jobSearchService.updateJob(id, request)
+            .map(job -> {
+                ApiResponse<JobEntity> response = ApiResponse.success(job, "Trabajo actualizado exitosamente");
+                response.setHasData(true);
+                return ResponseEntity.ok(response);
+            })
+            .onErrorResume(error -> {
+                if (error instanceof ApiException apiEx && "JOB_NOT_FOUND".equals(apiEx.getErrorCode())) {
+                    return Mono.just(ResponseEntity.notFound().build());
+                }
+                return Mono.just(ResponseEntity.badRequest().body(
+                    ApiResponse.<JobEntity>error("Error al actualizar el trabajo: " + error.getMessage())
+                ));
+            });
+    }
+    
+    /**
+     * Eliminar trabajo (eliminado lógico)
+     */
+    @DeleteMapping("/{id}")
+    public Mono<ResponseEntity<ApiResponse<Void>>> deleteJob(@PathVariable Long id) {
+        return jobSearchService.deleteJob(id)
+            .then(Mono.fromCallable(() -> {
+                ApiResponse<Void> response = ApiResponse.success(null, "Trabajo eliminado exitosamente");
+                response.setHasData(false);
+                return ResponseEntity.ok(response);
+            }))
+            .onErrorResume(error -> {
+                if (error instanceof ApiException apiEx && "JOB_NOT_FOUND".equals(apiEx.getErrorCode())) {
+                    return Mono.just(ResponseEntity.notFound().build());
+                }
+                return Mono.just(ResponseEntity.badRequest().body(
+                    ApiResponse.<Void>error("Error al eliminar el trabajo: " + error.getMessage())
+                ));
+            });
+    }
+    
+    /**
+     * Restaurar trabajo eliminado
+     */
+    @PatchMapping("/{id}/restore")
+    public Mono<ResponseEntity<ApiResponse<Void>>> restoreJob(@PathVariable Long id) {
+        return jobSearchService.restoreJob(id)
+            .then(Mono.fromCallable(() -> {
+                ApiResponse<Void> response = ApiResponse.success(null, "Trabajo restaurado exitosamente");
+                response.setHasData(false);
+                return ResponseEntity.ok(response);
+            }))
+            .onErrorResume(error -> {
+                if (error instanceof ApiException apiEx) {
+                    String message = switch (apiEx.getErrorCode()) {
+                        case "JOB_NOT_FOUND" -> "Trabajo no encontrado";
+                        case "JOB_ALREADY_ACTIVE" -> "El trabajo ya está activo";
+                        default -> apiEx.getMessage();
+                    };
+                    return Mono.just(ResponseEntity.badRequest().body(
+                        ApiResponse.<Void>error(message)
+                    ));
+                }
+                return Mono.just(ResponseEntity.badRequest().body(
+                    ApiResponse.<Void>error("Error al restaurar el trabajo: " + error.getMessage())
+                ));
+            });
+    }
+    
+    /**
+     * Buscar trabajos por título
+     */
+    @GetMapping("/search-by-title")
+    public Mono<ResponseEntity<ApiResponse<List<JobEntity>>>> searchJobsByTitle(
+            @RequestParam String title) {
+        
+        if (title == null || title.trim().isEmpty()) {
+            return Mono.just(ResponseEntity.badRequest().body(
+                ApiResponse.<List<JobEntity>>error("El título no puede estar vacío")
+            ));
+        }
+        
+        return jobSearchService.findByJobTitleContaining(title)
+            .collectList()
+            .map(jobs -> {
+                ApiResponse<List<JobEntity>> response = ApiResponse.success(jobs, "Búsqueda realizada correctamente");
+                response.setHasData(!jobs.isEmpty());
+                return ResponseEntity.ok(response);
+            })
+            .onErrorResume(error -> {
+                return Mono.just(ResponseEntity.badRequest().body(
+                    ApiResponse.<List<JobEntity>>error("Error en la búsqueda: " + error.getMessage())
+                ));
+            });
+    }
+    
+    /**
+     * Buscar trabajos por empresa
+     */
+    @GetMapping("/search-by-employer")
+    public Mono<ResponseEntity<ApiResponse<List<JobEntity>>>> searchJobsByEmployer(
+            @RequestParam String employer) {
+        
+        if (employer == null || employer.trim().isEmpty()) {
+            return Mono.just(ResponseEntity.badRequest().body(
+                ApiResponse.<List<JobEntity>>error("El nombre del empleador no puede estar vacío")
+            ));
+        }
+        
+        return jobSearchService.findByEmployerNameContaining(employer)
+            .collectList()
+            .map(jobs -> {
+                ApiResponse<List<JobEntity>> response = ApiResponse.success(jobs, "Búsqueda realizada correctamente");
+                response.setHasData(!jobs.isEmpty());
+                return ResponseEntity.ok(response);
+            })
+            .onErrorResume(error -> {
+                return Mono.just(ResponseEntity.badRequest().body(
+                    ApiResponse.<List<JobEntity>>error("Error en la búsqueda: " + error.getMessage())
+                ));
+            });
+    }
+    
+    /**
+     * Buscar trabajos por país
+     */
+    @GetMapping("/search-by-country")
+    public Mono<ResponseEntity<ApiResponse<List<JobEntity>>>> searchJobsByCountry(
+            @RequestParam String country) {
+        
+        if (country == null || country.trim().isEmpty()) {
+            return Mono.just(ResponseEntity.badRequest().body(
+                ApiResponse.<List<JobEntity>>error("El país no puede estar vacío")
+            ));
+        }
+        
+        return jobSearchService.findByCountry(country)
+            .collectList()
+            .map(jobs -> {
+                ApiResponse<List<JobEntity>> response = ApiResponse.success(jobs, "Búsqueda realizada correctamente");
+                response.setHasData(!jobs.isEmpty());
+                return ResponseEntity.ok(response);
+            })
+            .onErrorResume(error -> {
+                return Mono.just(ResponseEntity.badRequest().body(
+                    ApiResponse.<List<JobEntity>>error("Error en la búsqueda: " + error.getMessage())
+                ));
+            });
+    }
+    
+    /**
+     * Buscar trabajos por ciudad
+     */
+    @GetMapping("/search-by-city")
+    public Mono<ResponseEntity<ApiResponse<List<JobEntity>>>> searchJobsByCity(
+            @RequestParam String city) {
+        
+        if (city == null || city.trim().isEmpty()) {
+            return Mono.just(ResponseEntity.badRequest().body(
+                ApiResponse.<List<JobEntity>>error("La ciudad no puede estar vacía")
+            ));
+        }
+        
+        return jobSearchService.findByCity(city)
+            .collectList()
+            .map(jobs -> {
+                ApiResponse<List<JobEntity>> response = ApiResponse.success(jobs, "Búsqueda realizada correctamente");
+                response.setHasData(!jobs.isEmpty());
+                return ResponseEntity.ok(response);
+            })
+            .onErrorResume(error -> {
+                return Mono.just(ResponseEntity.badRequest().body(
+                    ApiResponse.<List<JobEntity>>error("Error en la búsqueda: " + error.getMessage())
+                ));
+            });
+    }
+    
+    // ============ Endpoints de API Externa (existentes) ============
 
     @GetMapping("/search")
     public Mono<ResponseEntity<ApiResponse<List<JobEntity>>>> searchJobs(
