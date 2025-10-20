@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: luis-valle-service
+  namespace: 15-luis-valle-namespace
+  labels:
+    app: 15-luis-valle-app
+spec:
+  selector:
+    app: 15-luis-valle-app
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
+  type: ClusterIP
