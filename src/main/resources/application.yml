@@ -7,8 +7,8 @@ spring:
     password: ${SPRING_R2DBC_PASSWORD:npg_yYaKwc5E6gsr}
     properties:
       sslMode: require
-  server:
-    port: 8080
+server:
+  port: ${SERVER_PORT:8080}
 rapidapi:
   key: ${RAPIDAPI_KEY:ab05570ba7msh5721c89ebac0f08p1cdd10jsn93d7f9f72c33}
   movie:

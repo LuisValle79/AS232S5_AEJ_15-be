@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: 15-luis-valle-config
+  namespace: 15-luis-valle-namespace
+data:
+  server.port: "9090"

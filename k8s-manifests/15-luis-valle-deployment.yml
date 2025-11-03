@@ -19,8 +19,13 @@ spec:
       - name: 15-luis-valle-container
         image: luisvalle1/15-luis-valle:1.0
         ports:
-        - containerPort: 8080
+        - containerPort: 9090
         env:
+        - name: SERVER_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: 15-luis-valle-config
+              key: server.port
         - name: SPRING_R2DBC_URL
           value: "r2dbc:postgresql://ep-withered-cell-afl7k9xj-pooler.c-2.us-west-2.aws.neon.tech:5432/neondb?options=endpoint=ep-withered-cell-afl7k9xj"
         - name: SPRING_R2DBC_USERNAME
@@ -45,12 +50,12 @@ spec:
         readinessProbe:
           httpGet:
             path: /swagger-ui.html
-            port: 8080
+            port: 9090
           initialDelaySeconds: 30
           periodSeconds: 10
         livenessProbe:
           httpGet:
             path: /swagger-ui.html
-            port: 8080
+            port: 9090
           initialDelaySeconds: 60
           periodSeconds: 30
