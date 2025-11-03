@@ -52,7 +52,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ secrets.DOCKER_HUB_USERNAME }}/as232s5-aej-15-be
+          images: ${{ secrets.DOCKER_HUB_USERNAME }}/15-luis-valle
           tags: |
             type=ref,event=branch
             type=ref,event=pr
