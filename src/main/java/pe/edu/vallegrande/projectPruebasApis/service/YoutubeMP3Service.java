@@ -80,7 +80,7 @@ public class YoutubeMP3Service {
                         WebClientResponseException wcError = (WebClientResponseException) error;
                         // No tratar el código 200 OK como un error
                         if (wcError.getStatusCode().is2xxSuccessful()) {
-                            System.err.println("Respuesta 2xx recibida pero con error: " + wcError.getMessage());
+                            System.err.println("Respuesta 2xx editada con pipeline recibida pero con error: " + wcError.getMessage());
                             return Mono.error(new ApiException(
                                 "La API devolvió una respuesta exitosa pero con formato incorrecto. Por favor, inténtelo de nuevo más tarde.",
                                 "YoutubeMP3",
