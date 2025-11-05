@@ -51,7 +51,7 @@ public class JobSearchService {
                 .retrieve()
                 .bodyToMono(JobSearchResponse.class)
                 .flatMapMany(response -> {
-                    // Verificar si la respuesta es nula
+                    // Verificar si la respuesta es nula nuhgygvbuhijkocfvgbhjnkml,
                     if (response == null) {
                         return Flux.error(new ApiException(
                             "La respuesta de la API es nula para la búsqueda: " + query,
