@@ -7,7 +7,7 @@ Este proyecto es una aplicación Spring WebFlux que consume dos APIs de RapidAPI
 
 Los datos obtenidos de estas APIs se almacenan en una base de datos PostgreSQL alojada en Neon.
 
-## Tecnologías utilizadas
+## Tecnologías utilizadas en este proyeto son muy buenas ijijii
 
 - Spring Boot 3.x
 - Spring WebFlux
