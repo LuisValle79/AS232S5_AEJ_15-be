@@ -8,7 +8,7 @@ spring:
     properties:
       sslMode: require
 server:
-  port: ${SERVER_PORT:8080}
+  port: ${SERVER_PORT}
 rapidapi:
   key: ${RAPIDAPI_KEY:ab05570ba7msh5721c89ebac0f08p1cdd10jsn93d7f9f72c33}
   movie:

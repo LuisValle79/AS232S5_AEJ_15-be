@@ -1,0 +1,203 @@
+# Docker Compose para Back-End de APIs IA
+# Proyecto: Spring Boot WebFlux con RapidAPI
+# Autor: Luis Valle
+
+version: '3.8'
+
+services:
+  # Servicio del Back-End de APIs IA
+  backend-apis-ia:
+    # Nombre del contenedor
+    container_name: backend-apis-ia
+    
+    # Imagen de Docker Hub
+    image: luisvalle1/backend-apis-ia:latest
+    
+    # Construcción desde Dockerfile local (comentado para usar imagen de Docker Hub)
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile
+    
+    # Puerto de ejecución configurable mediante variables de entorno
+    # Formato: HOST_PORT:CONTAINER_PORT
+    # Solo cambia SERVER_PORT en el archivo .env
+    ports:
+      - "${SERVER_PORT}:${SERVER_PORT}"
+    
+    # Variables de entorno para configuración
+    environment:
+      # ============================================
+      # CONFIGURACIÓN DEL SERVIDOR
+      # ============================================
+      - SERVER_PORT=${SERVER_PORT}
+      - SPRING_APPLICATION_NAME=${SPRING_APPLICATION_NAME}
+      
+      # ============================================
+      # CONFIGURACIÓN DE BASE DE DATOS (R2DBC)
+      # ============================================
+      - SPRING_R2DBC_URL=${SPRING_R2DBC_URL}
+      - SPRING_R2DBC_USERNAME=${SPRING_R2DBC_USERNAME}
+      - SPRING_R2DBC_PASSWORD=${SPRING_R2DBC_PASSWORD}
+      - SPRING_R2DBC_PROPERTIES_SSLMODE=${SPRING_R2DBC_PROPERTIES_SSLMODE}
+      
+      # ============================================
+      # CONFIGURACIÓN DE RAPIDAPI
+      # ============================================
+      - RAPIDAPI_KEY=${RAPIDAPI_KEY}
+      - RAPIDAPI_MOVIE_HOST=${RAPIDAPI_MOVIE_HOST}
+      - RAPIDAPI_JSEARCH_HOST=${RAPIDAPI_JSEARCH_HOST}
+      - RAPIDAPI_YOUTUBE_HOST=${RAPIDAPI_YOUTUBE_HOST}
+      
+      # ============================================
+      # CONFIGURACIÓN DE SPRINGDOC (SWAGGER)
+      # ============================================
+      - SPRINGDOC_API_DOCS_PATH=${SPRINGDOC_API_DOCS_PATH}
+      - SPRINGDOC_SWAGGER_UI_PATH=${SPRINGDOC_SWAGGER_UI_PATH}
+      - SPRINGDOC_SWAGGER_UI_ENABLED=${SPRINGDOC_SWAGGER_UI_ENABLED}
+      
+      # ============================================
+      # CONFIGURACIÓN DE LOGGING
+      # ============================================
+      - LOGGING_LEVEL_SPRINGDOC=${LOGGING_LEVEL_SPRINGDOC}
+      - LOGGING_LEVEL_SPRING_WEB=${LOGGING_LEVEL_SPRING_WEB}
+      - LOGGING_LEVEL_ROOT=${LOGGING_LEVEL_ROOT}
+      
+      # ============================================
+      # CONFIGURACIÓN DE JAVA/JVM
+      # ============================================
+      - JAVA_OPTS=${JAVA_OPTS}
+      - TZ=${TZ}
+    
+    # Reinicio automático en caso de fallo
+    restart: unless-stopped
+    
+    # Health check para verificar que el servicio está funcionando
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/api/movies"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    
+    # Red personalizada
+    networks:
+      - backend-network
+
+# Definición de redes
+networks:
+  backend-network:
+    driver: bridge
+
+# ============================================
+# ENDPOINTS PÚBLICOS DISPONIBLES (GET)
+# ============================================
+# 
+# Una vez que el contenedor esté ejecutándose, puedes probar los siguientes endpoints:
+# 
+# 1. PELÍCULAS (Movies API):
+#    - GET http://localhost:8080/api/movies
+#      Descripción: Obtiene todas las películas guardadas en la base de datos
+#      Ejemplo: curl http://localhost:8080/api/movies
+# 
+#    - GET http://localhost:8080/api/movies/search?title=Inception
+#      Descripción: Busca películas por título usando la API externa
+#      Ejemplo: curl "http://localhost:8080/api/movies/search?title=Inception"
+# 
+#    - GET http://localhost:8080/api/movies/getID?title=Inception
+#      Descripción: Obtiene información detallada de una película por título
+#      Ejemplo: curl "http://localhost:8080/api/movies/getID?title=Inception"
+# 
+#    - GET http://localhost:8080/api/movies/{id}
+#      Descripción: Obtiene una película específica por ID
+#      Ejemplo: curl http://localhost:8080/api/movies/1
+# 
+#    - GET http://localhost:8080/api/movies/search-by-title?title=Matrix
+#      Descripción: Busca películas en la base de datos local por título
+#      Ejemplo: curl "http://localhost:8080/api/movies/search-by-title?title=Matrix"
+# 
+# 2. TRABAJOS (Jobs API):
+#    - GET http://localhost:8080/api/jobs
+#      Descripción: Obtiene todos los trabajos guardados en la base de datos
+#      Ejemplo: curl http://localhost:8080/api/jobs
+# 
+#    - GET http://localhost:8080/api/jobs/search?query=developer&country=us&page=1&numPages=1
+#      Descripción: Busca trabajos usando la API externa de JSearch
+#      Ejemplo: curl "http://localhost:8080/api/jobs/search?query=developer&country=us&page=1&numPages=1"
+# 
+#    - GET http://localhost:8080/api/jobs/{id}
+#      Descripción: Obtiene un trabajo específico por ID
+#      Ejemplo: curl http://localhost:8080/api/jobs/1
+# 
+#    - GET http://localhost:8080/api/jobs/search-by-title?title=Developer
+#      Descripción: Busca trabajos en la base de datos local por título
+#      Ejemplo: curl "http://localhost:8080/api/jobs/search-by-title?title=Developer"
+# 
+#    - GET http://localhost:8080/api/jobs/search-by-employer?employer=Google
+#      Descripción: Busca trabajos por nombre de empresa
+#      Ejemplo: curl "http://localhost:8080/api/jobs/search-by-employer?employer=Google"
+# 
+#    - GET http://localhost:8080/api/jobs/search-by-country?country=us
+#      Descripción: Busca trabajos por país
+#      Ejemplo: curl "http://localhost:8080/api/jobs/search-by-country?country=us"
+# 
+#    - GET http://localhost:8080/api/jobs/search-by-city?city=Chicago
+#      Descripción: Busca trabajos por ciudad
+#      Ejemplo: curl "http://localhost:8080/api/jobs/search-by-city?city=Chicago"
+# 
+# 3. DOCUMENTACIÓN API:
+#    - GET http://localhost:8080/swagger-ui.html
+#      Descripción: Interfaz Swagger UI para explorar y probar todos los endpoints
+#      Ejemplo: Abrir en navegador http://localhost:8080/swagger-ui.html
+# 
+#    - GET http://localhost:8080/v3/api-docs
+#      Descripción: Documentación OpenAPI en formato JSON
+#      Ejemplo: curl http://localhost:8080/v3/api-docs
+# 
+# ============================================
+# INSTRUCCIONES DE USO
+# ============================================
+# 
+# 1. Ejecutar con puerto por defecto (8080):
+#    docker-compose up -d
+# 
+# 2. Ejecutar con puerto personalizado (ejemplo: 9090):
+#    SERVER_PORT=9090 docker-compose up -d
+#    Luego acceder a: http://localhost:9090/api/movies
+# 
+# 3. Ejecutar con puerto personalizado (ejemplo: 3000):
+#    SERVER_PORT=3000 docker-compose up -d
+#    Luego acceder a: http://localhost:3000/api/movies
+# 
+# 4. Ver logs del contenedor:
+#    docker-compose logs -f backend-apis-ia
+# 
+# 5. Detener el contenedor:
+#    docker-compose down
+# 
+# 6. Reconstruir la imagen:
+#    docker-compose up -d --build
+# 
+# ============================================
+# TESTEO DE VARIABLES (DIFERENTES PUERTOS)
+# ============================================
+# 
+# Puedes testear la aplicación en diferentes puertos usando la variable SERVER_PORT:
+# 
+# Ejemplo 1 - Puerto 8080 (por defecto):
+#   docker-compose up -d
+#   curl http://localhost:8080/api/movies
+# 
+# Ejemplo 2 - Puerto 9090:
+#   docker-compose down
+#   SERVER_PORT=9090 docker-compose up -d
+#   curl http://localhost:9090/api/movies
+# 
+# Ejemplo 3 - Puerto 3000:
+#   docker-compose down
+#   SERVER_PORT=3000 docker-compose up -d
+#   curl http://localhost:3000/api/movies
+# 
+# Ejemplo 4 - Puerto 5000:
+#   docker-compose down
+#   SERVER_PORT=5000 docker-compose up -d
+#   curl http://localhost:5000/api/movies
