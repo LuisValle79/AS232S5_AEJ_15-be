@@ -30,6 +30,7 @@ services:
       # CONFIGURACIÓN DEL SERVIDOR
       # ============================================
       - SERVER_PORT=${SERVER_PORT}
+      - APP_HOST=${APP_HOST}
       - SPRING_APPLICATION_NAME=${SPRING_APPLICATION_NAME}
       
       # ============================================
