@@ -74,7 +74,7 @@ services:
     
     # Health check para verificar que el servicio está funcionando
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/api/movies"]
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:${SERVER_PORT}/api/movies"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -82,12 +82,18 @@ services:
     
     # Red personalizada
     networks:
-      - backend-network
+      fullstack-network:
+        
+
+
 
 # Definición de redes
 networks:
-  backend-network:
+  fullstack-network:
+    name: fullstack-network
     driver: bridge
+    external: true
+
 
 # ============================================
 # ENDPOINTS PÚBLICOS DISPONIBLES (GET)
